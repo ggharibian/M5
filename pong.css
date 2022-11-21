@@ -1,0 +1,10 @@
+/* 
+What: Controlling the styling for a pong game
+Where: https://codepen.io/gdube/pen/JybxxZ
+Why: Needed for controlling the logic for the 
+pong game assignment. 
+*/
+
+body {
+	text-align: center;
+}
