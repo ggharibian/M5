@@ -118,8 +118,6 @@ void setup() {
 
   // you're connected now, so print out the status
 
-  printWiFiStatus();
-
   start_time = millis();
 }
 
@@ -200,20 +198,6 @@ void loop() {
 
         }
 
-        // Check to see if the client request was "GET /H" or "GET /L":
-
-        if (currentLine.endsWith("GET /H")) {
-
-          digitalWrite(led, HIGH);               // GET /H turns the LED on
-
-        }
-
-        if (currentLine.endsWith("GET /L")) {
-
-          digitalWrite(led, LOW);                // GET /L turns the LED off
-
-        }
-
       }
 
     }
@@ -223,28 +207,4 @@ void loop() {
     client.stop();
 
   }
-}
-
-void printWiFiStatus() {
-
-  // print the SSID of the network you're attached to:
-
-  Serial.print("SSID: ");
-
-  Serial.println(WiFi.SSID());
-
-  // print your WiFi shield's IP address:
-
-  IPAddress ip = WiFi.localIP();
-
-  Serial.print("IP Address: ");
-
-  Serial.println(ip);
-
-  // print where to go in a browser:
-
-  Serial.print("To see this page in action, open a browser to http://");
-
-  Serial.println(ip);
-
 }

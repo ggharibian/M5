@@ -46,7 +46,7 @@ var Paddle = {
 	}
 };
 
-const multiplayer = false;
+const multiplayer = true;
 
 var Game = {
 	initialize: function () {
@@ -71,40 +71,44 @@ var Game = {
 
 		this.data_rate = 25;
 		this.size = 10;
+		this.p1_use_relative_controls = true;
+		this.p2_use_relative_controls = false;
 
-        this.p1_json_payload = {'ax': 0, 'az': 0}
+		this.p1_json_payload = { 'ax': 0, 'az': 0 }
+		this.p2_json_payload = { 'ax': 0, 'az': 0 }
 
-        this.player_1_heartbeat = async () => {
-            const url='http://192.168.4.1/';
+		this.player_1_heartbeat = async () => {
+			const url = 'http://192.168.4.1/';
 
 			await setInterval(async () => {
-				fetch(url).then((response) => {
-					return response.json()
-				}).then((data) => {
-					this.p1_json_payload = data
+				await fetch(url).then((response1) => {
+					return response1.json()
+				}).then((data1) => {
+					this.p1_json_payload = data1
 				})
 			},
-			this.data_rate);
-        }
-        this.player_1_heartbeat()
+				this.data_rate);
+		}
+		this.player_1_heartbeat()
 
-		if (multiplayer){
+		if (multiplayer) {
 			this.player_2_heartbeat = async () => {
-				const url='http://192.168.4.1/';
-	
+				const url = 'http://192.168.4.4/';
+
 				await setInterval(async () => {
-					fetch(url).then((response) => {
-						return response.json()
-					}).then((data) => {
-						this.p2_json_payload = data
+					fetch(url).then((response2) => {
+						return response2.json()
+					}).then((data2) => {
+						this.p2_json_payload = data2
 					})
 				},
-				this.data_rate);
+					this.data_rate);
 			}
 			this.player_2_heartbeat()
 		}
 
-		this.vals = new Array(this.size).fill(0);
+		this.p1_vals = new Array(this.size).fill(0);
+		this.p2_vals = new Array(this.size).fill(0);
 
 
 		Pong.menu();
@@ -197,7 +201,7 @@ var Game = {
 			if (this.ball.moveX === DIRECTION.LEFT) this.ball.x -= this.ball.speed;
 			else if (this.ball.moveX === DIRECTION.RIGHT) this.ball.x += this.ball.speed;
 
-			if (!multiplayer){
+			if (!multiplayer) {
 				// Handle paddle (AI) UP and DOWN movement
 
 				if (this.paddle.y > this.ball.y - (this.paddle.height / 2)) {
@@ -220,7 +224,7 @@ var Game = {
 					this.ball.x = (this.player.x + this.ball.width);
 					this.ball.moveX = DIRECTION.RIGHT;
 
-					
+
 				}
 			}
 
@@ -230,7 +234,7 @@ var Game = {
 					this.ball.x = (this.paddle.x - this.ball.width);
 					this.ball.moveX = DIRECTION.LEFT;
 
-					
+
 				}
 			}
 		}
@@ -249,10 +253,10 @@ var Game = {
 				this.player.score = this.paddle.score = 0;
 				this.player.speed += 0.5;
 				this.paddle.speed += 1;
-				this.ball.speed += 1;
+				this.ball.speed += 0.5;
 				this.round += 1;
 
-				
+
 			}
 		}
 		// Check to see if the paddle/AI has won the round.
@@ -387,38 +391,78 @@ var Game = {
 		// document.addEventListener('keyup', function (key) { Pong.player.move = DIRECTION.IDLE; });
 
 		listen_to_arduino = async () => {
-			setInterval(()=>{
-				// if (this.p1_json_payload['ax'] > 0.2) Pong.player.move = DIRECTION.DOWN;
-				// else if (this.p1_json_payload['ax'] < -0.2) Pong.player.move = DIRECTION.UP;
-				// else Pong.player.move = DIRECTION.IDLE;
-				// console.log(this.p1_json_payload)
+			setInterval(() => {
 
-				get_abs_position = (ax, az) => {
-					const normalized_ax = Math.round(Math.min(Math.max((ax + 1) / 2, 0), 1) * 100) / 100;
-					const normalized_az = Math.round(1 - Math.min(Math.max(az, 0), 1) * 100) / 100;
-					const ax_sign = ax / Math.abs(ax);
+				// if (multiplayer){
+				// 	if (this.p2_json_payload['ax'] > 0.2) Pong.paddle.move = DIRECTION.DOWN;
+				// 	else if (this.p2_json_payload['ax'] < -0.2) Pong.paddle.move = DIRECTION.UP;
+				// 	else Pong.player.move = DIRECTION.IDLE;
+				// }
 
-					// console.log([normalized_ax, normalized_az]);
+				if (this.p1_use_relative_controls) {
+					if (this.p1_json_payload['az'] > 0.5) Pong.player.move = DIRECTION.DOWN; // Palm-Facing Down
+					else if (this.p1_json_payload['az'] < -0.5) Pong.player.move = DIRECTION.UP; // Palm Facing Up
+					else Pong.player.move = DIRECTION.IDLE; // Face Facing Sideways (STOP gesture)
+				}
+				else {
+					get_abs_position_player_1 = (p1_ax, p1_az) => {
+						const normalized_p1_ax = Math.round(Math.min(Math.max((p1_ax + 1) / 2, 0), 1) * 100) / 100; 
+						const normalized_az = Math.round(1 - Math.min(Math.max(p1_az, 0), 1) * 100) / 100;
+						const p1_ax_sign = p1_ax / Math.abs(p1_ax);
 
-					// const new_y = ((465 + normalized_az * 465 * ax_sign) + (normalized_ax * 930)) / 2; return new_y;
-					const new_y = normalized_ax * 930;
+						console.log(normalized_az)
 
-					for (var i = 1; i < this.vals.length; i++){
-						this.vals[i] = this.vals[i - 1];
+						// console.log([normalized_p1_ax, normalized_az]);
+
+						// const new_y = ((465 + normalized_az * 465 * p1_ax_sign) + (normalized_p1_ax * 930)) / 2; return new_y;
+						const new_y = normalized_p1_ax * 930;
+
+						for (var i = 1; i < this.p1_vals.length; i++) {
+							this.p1_vals[i] = this.p1_vals[i - 1];
+						}
+
+						this.p1_vals[0] = new_y;
+
+						// console.log(this.p1_vals)
+						return this.p1_vals.reduce((x, y) => { return x + y }) / this.p1_vals.length;
+
+						// const new_y = 465 + normalized_az * 465 * p1_ax_sign; return new_y
+						// console.log(normalized_az)
 					}
-
-					this.vals[0] = new_y;
-
-					// console.log(this.vals)
-					return this.vals.reduce((x, y) => {return x + y}) / this.vals.length;
-
-					// const new_y = 465 + normalized_az * 465 * ax_sign; return new_y
-					// console.log(normalized_az)
+					this.player.y = get_abs_position_player_1(this.p1_json_payload['ax'], this.p1_json_payload['az'])
 				}
 
-				this.player.y = get_abs_position(this.p1_json_payload['ax'], this.p1_json_payload['az'])
+				if (this.p2_use_relative_controls) {
+					if (this.p2_json_payload['ax'] > 0.5) Pong.paddle.move = DIRECTION.DOWN;
+					else if (this.p2_json_payload['ax'] < -0.5) Pong.paddle.move = DIRECTION.UP;
+					else Pong.paddle.move = DIRECTION.IDLE;
+				} else {
+					get_abs_position_player_2 = (p2_ax, p2_ay, p2_az) => {
+						const normalized_p2_ax = Math.round(Math.min(Math.max((p2_ax + 1) / 2, 0), 1) * 100) / 100;
+						const normalized_az = Math.round(1 - Math.min(Math.max(p2_az, 0), 1) * 100) / 100;
+						const p2_ax_sign = p2_ax / Math.abs(p2_ax);
+						console.log(p2_ax)
 
-				if (multiplayer) this.player.y = get_abs_position(this.p1_json_payload['ax'], this.p1_json_payload['az'])
+						// console.log([normalized_p2_ax, normalized_az]);
+
+						// const new_y = ((465 + normalized_az * 465 * p2_ax_sign) + (normalized_p2_ax * 930)) / 2; return new_y;
+						const new_y = normalized_p2_ax * 930;
+
+						for (var i = 1; i < this.p2_vals.length; i++) {
+							this.p2_vals[i] = this.p2_vals[i - 1];
+						}
+
+						this.p2_vals[0] = new_y;
+
+						// console.log(this.p2_vals)
+						return this.p2_vals.reduce((x, y) => { return x + y }) / this.p2_vals.length;
+
+						// const new_y = 465 + normalized_az * 465 * p2_ax_sign; return new_y
+						// console.log(normalized_az)
+					}
+
+					if (multiplayer) this.paddle.y = get_abs_position_player_2(this.p2_json_payload['ax'], this.p2_json_payload['ay'], this.p2_json_payload['az'])
+				}
 			}, this.data_rate)
 		}
 
@@ -426,17 +470,17 @@ var Game = {
 	},
 
 	// Reset the ball location, the player turns and set a delay before the next round begins.
-	_resetTurn: function(victor, loser) {
+	_resetTurn: function (victor, loser) {
 		this.ball = Ball.new.call(this, this.ball.speed);
 		this.turn = loser;
 		this.timer = (new Date()).getTime();
 
 		victor.score++;
-		
+
 	},
 
 	// Wait for a delay to have passed after each turn.
-	_turnDelayIsOver: function() {
+	_turnDelayIsOver: function () {
 		return ((new Date()).getTime() - this.timer >= 1000);
 	},
 
