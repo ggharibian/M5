@@ -93,7 +93,11 @@ var Game = {
 
 		if (multiplayer) {
 			this.player_2_heartbeat = async () => {
-				const url = 'http://192.168.4.4/';
+				const url = 'http://192.168.4.2/'; // NOTE: When running the 
+				// player_2_script on the arduino, make sure to copy the ip-address 
+				// that is given when it connects to wifi into THIS variable. Needed to player the game!
+				// This value will likely be in the following format: 192.168.4.[2-5]. Check the serial
+				// monitor in the arduino script to find the true value!
 
 				await setInterval(async () => {
 					fetch(url).then((response2) => {
@@ -406,7 +410,7 @@ var Game = {
 				}
 				else {
 					get_abs_position_player_1 = (p1_ax, p1_az) => {
-						const normalized_p1_ax = Math.round(Math.min(Math.max((p1_ax + 1) / 2, 0), 1) * 100) / 100; 
+						const normalized_p1_ax = Math.round(Math.min(Math.max((p1_ax + 1) / 2, 0), 1) * 100) / 100;
 						const normalized_az = Math.round(1 - Math.min(Math.max(p1_az, 0), 1) * 100) / 100;
 						const p1_ax_sign = p1_ax / Math.abs(p1_ax);
 
